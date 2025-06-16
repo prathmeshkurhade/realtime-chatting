@@ -82,19 +82,32 @@ const Profile = () => {
 
   const handleImageChange = async (event) => {
     const file = event.target.files[0];
-    if(file) {
-      const formData = new formData();
-      formData.append("profile-image", file)
-      const response = await apiClient.post(ADD_PROFILE_IMAGE_ROUTE, {withCredentials: true,})
-      if(response.status===200 && response.data.image) {
-        setUserInfo({...userInfo, image: response.data.image})
-        toast.success("image updated successfully")
-      }
-      const reader = new FileReader();
-      reader.onload =  () => {
-        setImage(reader.result)
-      }
-      reader.readAsDataURL(file)
+    if (file) {
+        const formData = new FormData();
+        formData.append("profile-image", file); // Ensure the key matches the backend
+
+        try {
+            const response = await apiClient.post(ADD_PROFILE_IMAGE_ROUTE, formData, {
+                withCredentials: true, // Include cookies for authentication
+                headers: {
+                    "Content-Type": "multipart/form-data", // Set the correct content type
+                },
+            });
+
+            if (response.status === 200 && response.data.image) {
+                setUserInfo({ ...userInfo, image: response.data.image });
+                toast.success("Image updated successfully");
+            }
+        } catch (error) {
+            console.error("Error during image upload:", error);
+            toast.error("Failed to upload image");
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setImage(reader.result); // Update the local preview
+        };
+        reader.readAsDataURL(file);
     }
   };
   const handleDeleteImage = async () => {};
@@ -155,6 +168,7 @@ const Profile = () => {
             className="hidden"
             name="profile-image"
             accept=".png, .svg ,.jpeg ,.jpg, .webp"
+            onChange={handleImageChange}
           />
         </div>
 

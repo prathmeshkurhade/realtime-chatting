@@ -1,6 +1,7 @@
 import { compare } from 'bcryptjs';
 import User from '../models/UserModel.js';
 import jwt from 'jsonwebtoken';
+import {renameSync ,unlinkSync} from  "fs"
 
 const maxAge = 3 * 24 * 60 * 60; // in secondssss
 
@@ -93,6 +94,69 @@ export const getUserInfo = async (req, res, next) => {
 };
 
 export const updateProfile = async (req, res, next) => {
+    try {
+        const { userId } = req;
+        const { firstName, lastName, color, image } = req.body;
+
+        if (!firstName || !lastName) {
+            return res.status(400).send("First name and last name are required");
+        }
+
+        const userData = await User.findByIdAndUpdate(
+            userId,
+            {
+                firstName,
+                lastName,
+                color,
+                image,
+                profileSetup: true,
+            },
+            { new: true, runValidators: true }
+        );
+
+        return res.status(200).json({
+            id: userData.id,
+            email: userData.email,
+            profileSetup: userData.profileSetup,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            image: userData.image,
+            color: userData.color,
+        });
+    } catch (error) {
+        console.error("Error during updateProfile:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+
+export const addProfileImage = async (req, res, next) => {
+    try {
+        console.log("Incoming file:", req.file); // Debugging log
+        if (!req.file) {
+            return res.status(400).send("File is required");
+        }
+
+        const date = Date.now();
+        const fileName = "uploads/profiles/" + date + "_" + req.file.originalname;
+        renameSync(req.file.path, fileName); // Rename the file to the desired location
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.userId,
+            { image: fileName },
+            { new: true, runValidators: true }
+        );
+
+        return res.status(200).json({
+            image: updatedUser.image,
+        });
+    } catch (error) {
+        console.error("Error during addProfileImage:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const removeProfileImage = async (req, res, next) => {
     try {
         const { userId } = req;
         const { firstName, lastName, color, image } = req.body;
