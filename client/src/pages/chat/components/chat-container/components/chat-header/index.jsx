@@ -1,17 +1,20 @@
 import {RiCloseFill} from "react-icons/ri"
 import React, { useState } from "react";
+import { useAppStore } from "@/store";
 
 const ChatHeader = () => {
   const [message, setMessage] = useState("");
 
 
+const {closeChat} = useAppStore();
 
   return (
     <div className=" h-[10vh] border-b-2 border-[#2f3033c] flex items-center  justify-between px-20">
       <div className="flex gap-5 items-center">
         <div className="flex gap-3 items-center justify-center">
             <div className="flex items-center justify-center gap-5">
-<button className="text-neutral-500 focus:border-npnw focus:outline-none focus:text-white duration-300 transition-all">
+<button className="text-neutral-500 focus:border-npnw focus:outline-none focus:text-white duration-300 transition-all"
+onClick={closeChat}>
     <RiCloseFill className="text-3xl" />
 </button>
             </div>

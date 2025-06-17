@@ -4,10 +4,10 @@ import { toast } from "sonner";
 import ContactsContainer from "./components/contacts-container";
 import EmptyChatContainer from "./components/empty-chat-container";
 import ChatContainer from "./components/chat-container";
-import { useAppStore } from "@/store";  // <-- Import useAppStore
+import { useAppStore } from "@/store";
 
 const Chat = () => {
-  const { userInfo } = useAppStore();
+  const { userInfo, selectedChatType } = useAppStore(); // Fix: Use selectedChatType instead of setselectedChatType
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,8 +20,7 @@ const Chat = () => {
   return (
     <div className="flex h-[100vh] text-white overflow-hidden">
       <ContactsContainer />
-      <EmptyChatContainer />
-      <ChatContainer />
+      {selectedChatType ? <ChatContainer /> : <EmptyChatContainer />} {/* Fix: Check selectedChatType instead of setselectedChatType */}
     </div>
   );
 };
