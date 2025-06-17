@@ -41,56 +41,61 @@ export const signup = async (req, res, next) => {
 export const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ message: "Email and password are required" });
-        }
+
         const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).send("User not found");
-        }
-        const auth  = await compare(password, user.password);
-        if (!auth) {
-            return res.status(401).send("Invalid credentials");
-        }
-        
-        res.cookie("jwt", createToken(email, user.id), {
-            maxAge: maxAge * 1000,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+        if (!user) return res.status(404).send("User not found");
+
+        const isPasswordValid = await compare(password, user.password);
+        if (!isPasswordValid) return res.status(401).send("Invalid credentials");
+
+        const token = createToken(user.email, user._id);
+        res.cookie("jwt", token, {
+          maxAge: maxAge * 1000,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+          httpOnly: true,
         });
+
+        // Wrap the user data inside a "user" key
         return res.status(200).json({
             user: {
-                id: user.id,
+                id: user._id,
                 email: user.email,
-                profileSetup: user.profileSetup,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                color: user.color,
+                image: user.image,
+                profileSetup: user.profileSetup
             },
         });
     } catch (error) {
         console.error("Error during login:", error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).send("Internal server error");
     }
 };
 
 export const getUserInfo = async (req, res, next) => {
-    try {
-        const userData = await User.findById(req.userId);
-        if (!userData) {
-            return res.status(404).send("User with given ID not found");
-        }
-
-        return res.status(200).json({
-            id: userData.id,
-            email: userData.email,
-            profileSetup: userData.profileSetup,
-            firstName: userData.firstName,
-            lastName: userData.lastName,    
-            image: userData.image,  
-            color: userData.color,
-        });
-    } catch (error) {
-        console.error("Error during getUserInfo:", error);
-        res.status(500).json({ message: "Internal server error" });
+  try {
+    const userData = await User.findById(req.userId);
+    if (!userData) {
+      return res.status(404).send("User with given ID not found");
     }
+    // Wrap the response in a "user" key
+    return res.status(200).json({
+      user: {
+        id: userData.id,
+        email: userData.email,
+        profileSetup: userData.profileSetup,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        image: userData.image,
+        color: userData.color,
+      },
+    });
+  } catch (error) {
+    console.error("Error during getUserInfo:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 export const updateProfile = async (req, res, next) => {
@@ -159,33 +164,24 @@ export const addProfileImage = async (req, res, next) => {
 export const removeProfileImage = async (req, res, next) => {
     try {
         const { userId } = req;
-        const { firstName, lastName, color, image } = req.body;
+       const user= await User.findById(userId);
 
-        if (!firstName || !lastName) {
-            return res.status(400).send("First name and last name are required");
-        }
+       if(!user) {
+        return res.status(404).send("user not found")
+       }
 
-        const userData = await User.findByIdAndUpdate(
-            userId,
-            {
-                firstName,
-                lastName,
-                color,
-                image,
-                profileSetup: true,
-            },
-            { new: true, runValidators: true }
-        );
+       if(user.image) {
+        unlinkSync(user.image)
+       }
 
-        return res.status(200).json({
-            id: userData.id,
-            email: userData.email,
-            profileSetup: userData.profileSetup,
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-            image: userData.image,
-            color: userData.color,
-        });
+       user.image = null;
+       await user.save();
+
+
+
+
+
+        return res.status(200).send("profile image removed successfully");
     } catch (error) {
         console.error("Error during updateProfile:", error);
         res.status(500).json({ message: "Internal server error" });
